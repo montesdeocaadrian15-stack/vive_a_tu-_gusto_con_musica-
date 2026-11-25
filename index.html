@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEON WAVE - Estudio de audio</title>
+    <style>
+        :root {
+            --bg-dark: #050b14;
+            --neon-blue: #00f0ff;
+            --neon-glow: rgba(0, 240, 255, 0.4);
+            --electric-cyan: #0088ff;
+            --glass-bg: rgba(10, 25, 47, 0.65);
+            --card-border: rgba(0, 240, 255, 0.3);
+            --text-glow: 0 0 10px #00f0ff, 0 0 20px #00f0ff, 0 0 40px #0088ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* FONDO CON RECTÁNGULOS PÍLDORA DIAGONALES SUBIENDO */
+        .background-capsules {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .capsule {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(0, 136, 255, 0.05));
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 9999px; /* Forma de píldora/rectángulo totalmente redondeado */
+            transform: rotate(-35deg);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.15);
+            animation: floatUp 12s infinite linear;
+            bottom: -200px;
+        }
+
+        .capsule:nth-child(1) { left: 5%; width: 120px; height: 350px; animation-duration: 14s; animation-delay: 0s; }
+        .capsule:nth-child(2) { left: 25%; width: 80px; height: 250px; animation-duration: 10s; animation-delay: 2s; }
+        .capsule:nth-child(3) { left: 50%; width: 150px; height: 450px; animation-duration: 18s; animation-delay: 4s; }
+        .capsule:nth-child(4) { left: 75%; width: 90px; height: 280px; animation-duration: 11s; animation-delay: 1s; }
+        .capsule:nth-child(5) { left: 90%; width: 110px; height: 380px; animation-duration: 15s; animation-delay: 5s; }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) rotate(-35deg);
+                opacity: 0;
+            }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.8; }
+            100% {
+                transform: translateY(-130vh) rotate(-35deg);
+                opacity: 0;
+            }
+        }
+
+        header {
+            padding: 30px 20px 10px;
+            text-align: center;
+            position: relative;
+        }
+
+        .sfx-toggle {
+            position: absolute;
+            right: 24px;
+            top: 24px;
+            min-width: 118px;
+        }
+
+        .title-neon {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: var(--text-glow);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: rgba(0, 240, 255, 0.8);
+            font-size: 0.95rem;
+            letter-spacing: 2px;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+        }
+
+        /* GRID DE TARJETAS INTERACTIVAS */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(0, 240, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: var(--neon-blue);
+            box-shadow: 0 15px 35px rgba(0, 240, 255, 0.25), inset 0 0 20px rgba(0, 240, 255, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+            padding-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            color: var(--neon-blue);
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* BOTONES DE ESTILO NEÓN */
+        .btn-neon {
+            background: transparent;
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+            outline: none;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        .btn-neon:hover {
+            background: var(--neon-blue);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        .btn-neon:active {
+            transform: scale(0.95);
+        }
+
+        .music-dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .player-card,
+        .visualizer-card {
+            grid-column: 1 / -1;
+        }
+
+        .player-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+            gap: 28px;
+        }
+
+        .player-main,
+        .library-panel,
+        .sound-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .track-info {
+            min-width: 0;
+        }
+
+        .track-title {
+            font-size: 1.5rem;
+            overflow-wrap: anywhere;
+        }
+
+        .track-subtitle,
+        .helper-text,
+        #audioStatus {
+            color: rgba(255, 255, 255, 0.65);
+            line-height: 1.5;
+        }
+
+        .file-picker {
+            align-self: flex-start;
+        }
+
+        .transport-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .transport-button {
+            width: 46px;
+            height: 46px;
+            padding: 0;
+            font-size: 1.1rem;
+        }
+
+        .play-button {
+            width: 58px;
+            height: 58px;
+            font-size: 1.3rem;
+            background: var(--neon-blue);
+            color: #001016;
+        }
+
+        .range-control {
+            width: 100%;
+            accent-color: var(--neon-blue);
+            cursor: pointer;
+        }
+
+        .timeline,
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .time-label {
+            min-width: 42px;
+            color: rgba(255, 255, 255, 0.75);
+            font-variant-numeric: tabular-nums;
+            font-size: 0.85rem;
+        }
+
+        .library-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 210px;
+            overflow-y: auto;
+        }
+
+        .library-track {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(0, 240, 255, 0.12);
+            border-radius: 12px;
+            background: rgba(0, 5, 15, 0.45);
+            color: #fff;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .library-track:hover,
+        .library-track[aria-current="true"] {
+            border-color: var(--neon-blue);
+            background: rgba(0, 240, 255, 0.1);
+        }
+
+        .library-empty {
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 0.9rem;
+        }
+
+        .preset-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .preset-button {
+            padding: 8px 12px;
+        }
+
+        .preset-button[aria-pressed="true"] {
+            background: var(--neon-blue);
+            color: #001016;
+        }
+
+        .eq-control {
+            display: grid;
+            grid-template-columns: 72px minmax(0, 1fr) 48px;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .channel-control {
+            display: grid;
+            grid-template-columns: 120px minmax(0, 1fr) 48px;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .eq-control output {
+            color: var(--neon-blue);
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sound-note {
+            color: rgba(255, 255, 255, 0.58);
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        /* VISUALIZADOR DEL AUDIO REPRODUCIDO */
+        .visualizer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        canvas#audioCanvas {
+            width: 100%;
+            height: 120px;
+            border-radius: 16px;
+            background: rgba(0, 5, 15, 0.8);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+        }
+
+        .quote-card {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(0, 10, 30, 0.8));
+            border-left: 5px solid var(--neon-blue);
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .lyric-text {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: #ffffff;
+            text-shadow: var(--text-glow);
+            font-style: italic;
+        }
+
+        @media (max-width: 700px) {
+            .music-dashboard,
+            .player-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .player-card,
+            .visualizer-card {
+                grid-column: auto;
+            }
+
+            .title-neon {
+                font-size: 1.7rem;
+            }
+
+            .lyric-text {
+                font-size: 1.35rem;
+                letter-spacing: 2px;
+            }
+
+            .sfx-toggle {
+                position: static;
+                margin: 16px auto 0;
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(0, 240, 255, 0.1);
+            margin-top: 40px;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            z-index: 20;
+            max-width: calc(100vw - 32px);
+            padding: 12px 18px;
+            border: 1px solid rgba(0, 240, 255, 0.55);
+            border-radius: 999px;
+            background: rgba(3, 15, 28, 0.94);
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.18);
+            backdrop-filter: blur(12px);
+            opacity: 0;
+            transform: translate(-50%, 16px);
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .toast.is-visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        .sfx-toggle[aria-pressed="true"] {
+            background: var(--neon-blue);
+            color: #001016;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- FONDO DE CÁPSULAS O RECTÁNGULOS REDONDEADOS DIAGONALES -->
+    <div class="background-capsules">
+        <div class="capsule"></div>
+        <div class="capsule"></div>
+        <div class="capsule"></div>
+        <div class="capsule"></div>
+        <div class="capsule"></div>
+    </div>
+
+    <!-- ENCABEZADO PRINCIPAL -->
+    <header>
+        <h1 class="title-neon">NEON WAVE</h1>
+        <p class="subtitle">TU MÚSICA · TU ECUALIZACIÓN · TU ESPACIO</p>
+        <button class="btn-neon sfx-toggle" id="sfxToggle" type="button" aria-pressed="true" aria-label="Activar o desactivar efectos de interfaz">
+            🔊 EFECTOS ON
+        </button>
+    </header>
+
+    <main>
+        <section class="music-dashboard" aria-label="Reproductor y controles de sonido">
+            <article class="card player-card">
+                <div class="card-header">
+                    <span class="card-title">♫ REPRODUCTOR</span>
+                    <span style="font-size: 0.8rem; color: var(--neon-blue);">BIBLIOTECA LOCAL</span>
+                </div>
+                <div class="player-layout">
+                    <div class="player-main">
+                        <label class="btn-neon file-picker" for="trackInput">＋ Añadir música</label>
+                        <input id="trackInput" type="file" accept="audio/*" multiple hidden>
+                        <div class="track-info">
+                            <h2 class="track-title" id="trackTitle">Sin canción seleccionada</h2>
+                            <p class="track-subtitle" id="playerStatus" role="status" aria-live="polite">Añade archivos de audio desde tu dispositivo para empezar.</p>
+                        </div>
+                        <audio id="audioPlayer" preload="metadata"></audio>
+                        <div class="timeline">
+                            <span class="time-label" id="currentTime">0:00</span>
+                            <input class="range-control" id="seekSlider" type="range" min="0" max="100" value="0" aria-label="Posición de reproducción">
+                            <span class="time-label" id="duration">0:00</span>
+                        </div>
+                        <div class="transport-controls" aria-label="Controles de reproducción">
+                            <button class="btn-neon transport-button" id="previousButton" type="button" aria-label="Pista anterior">|◀</button>
+                            <button class="btn-neon transport-button play-button" id="playButton" type="button" aria-label="Reproducir" disabled>▶</button>
+                            <button class="btn-neon transport-button" id="nextButton" type="button" aria-label="Pista siguiente">▶|</button>
+                        </div>
+                        <label class="volume-control" for="volumeSlider">
+                            <span aria-hidden="true">🔊</span>
+                            <input class="range-control" id="volumeSlider" type="range" min="0" max="100" value="80" aria-label="Volumen">
+                            <span class="time-label" id="volumeValue">80%</span>
+                        </label>
+                    </div>
+                    <aside class="library-panel" aria-label="Cola de reproducción">
+                        <h3 class="card-title">♫ MI COLA</h3>
+                        <div class="library-list" id="playlist">
+                            <p class="library-empty">Tus canciones añadidas aparecerán aquí.</p>
+                        </div>
+                    </aside>
+                </div>
+            </article>
+
+            <article class="card sound-card">
+                <div class="card-header">
+                    <span class="card-title">♫ ESTUDIO DE SONIDO</span>
+                    <span style="font-size: 0.8rem; color: var(--neon-blue);">EQ</span>
+                </div>
+                <div class="sound-controls">
+                    <p class="helper-text">Ajusta el carácter de tu música en tiempo real.</p>
+                    <div class="preset-row" role="group" aria-label="Preajustes del ecualizador">
+                        <button class="btn-neon preset-button" type="button" data-preset="balanced" aria-pressed="true">Balanceado</button>
+                        <button class="btn-neon preset-button" type="button" data-preset="bass" aria-pressed="false">Graves</button>
+                        <button class="btn-neon preset-button" type="button" data-preset="vocal" aria-pressed="false">Voces</button>
+                    </div>
+                    <label class="eq-control" for="bassSlider">
+                        <span>Graves</span>
+                        <input class="range-control eq-slider" id="bassSlider" type="range" min="-12" max="12" value="0" data-band="bass">
+                        <output id="bassValue" for="bassSlider">0 dB</output>
+                    </label>
+                    <label class="eq-control" for="midSlider">
+                        <span>Medios</span>
+                        <input class="range-control eq-slider" id="midSlider" type="range" min="-12" max="12" value="0" data-band="mid">
+                        <output id="midValue" for="midSlider">0 dB</output>
+                    </label>
+                    <label class="eq-control" for="trebleSlider">
+                        <span>Agudos</span>
+                        <input class="range-control eq-slider" id="trebleSlider" type="range" min="-12" max="12" value="0" data-band="treble">
+                        <output id="trebleValue" for="trebleSlider">0 dB</output>
+                    </label>
+                    <div class="card-header">
+                        <span class="card-title">🎧 CANALES</span>
+                        <span style="font-size: 0.8rem; color: var(--neon-blue);">L / R</span>
+                    </div>
+                    <p class="helper-text">Ajusta por separado el volumen de cada lado de tus audífonos.</p>
+                    <label class="channel-control" for="leftVolumeSlider">
+                        <span>Izquierdo (L)</span>
+                        <input class="range-control" id="leftVolumeSlider" type="range" min="0" max="100" value="100" aria-label="Volumen del canal izquierdo">
+                        <output id="leftVolumeValue" for="leftVolumeSlider">100%</output>
+                    </label>
+                    <label class="channel-control" for="rightVolumeSlider">
+                        <span>Derecho (R)</span>
+                        <input class="range-control" id="rightVolumeSlider" type="range" min="0" max="100" value="100" aria-label="Volumen del canal derecho">
+                        <output id="rightVolumeValue" for="rightVolumeSlider">100%</output>
+                    </label>
+                    <div class="preset-row">
+                        <button class="btn-neon preset-button" id="spatialToggle" type="button" aria-pressed="false">
+                            8D DESACTIVADO
+                        </button>
+                    </div>
+                    <p class="sound-note">El efecto 8D mueve el sonido entre ambos lados y se disfruta mejor con audífonos estéreo. Ajusta el volumen con cuidado.</p>
+                    <p class="sound-note">Los cambios se aplican a la reproducción de esta página. La música permanece en tu dispositivo.</p>
+                </div>
+            </article>
+
+            <article class="card visualizer-card">
+                <div class="card-header">
+                    <span class="card-title">♫ VISUALIZADOR</span>
+                    <span style="font-size: 0.8rem; color: var(--neon-blue);">EN VIVO</span>
+                </div>
+                <div class="visualizer-container">
+                    <canvas id="audioCanvas" aria-label="Espectro visual de la música"></canvas>
+                    <p id="audioStatus" role="status" aria-live="polite">El espectro aparecerá al reproducir una canción.</p>
+                </div>
+            </article>
+
+            <article class="card quote-card">
+                <p class="lyric-text">"SIÉNTELO. AJÚSTALO. VÍVELO."</p>
+            </article>
+
+        </section>
+    </main>
+
+    <!-- PIE DE PÁGINA SEMÁNTICO -->
+    <footer>
+        <p>NEON WAVE &copy; 2026 | Tu espacio personal para escuchar música</p>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="pun.js"></script>
+</body>
+</html>
